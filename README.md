@@ -4,7 +4,7 @@ An interactive web app that visualizes how a Binary Search Tree (BST) changes as
 
 Developed as an **HCL GUVI Training Project**.
 
-**Live demo:** [https://your-app-name.onrender.com](https://your-app-name.onrender.com)
+**Live demo:** [https://bst-explorer.onrender.com](https://bst-explorer.onrender.com)
 
 ## Features
 
