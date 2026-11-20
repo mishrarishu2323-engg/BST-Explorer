@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Binary Search Tree Explorer</title>
+
+<script>
+  if (!sessionStorage.getItem("bstCurrentUser")) {
+    window.location.href = "login.html";
+  }
+</script>
+
+<style>
+  /* ---------- Theme colors (change the look from here) ---------- */
+  :root {
+    --page-bg: #f3f6f4;
+    --box-bg: #ffffff;
+    --text-color: #17302a;
+    --muted-text: #5d716b;
+    --border: #b9c9c2;
+    --primary: #0f766e;
+    --visiting: #f59e0b;
+    --success: #16a34a;
+    --danger: #dc2626;
+  }
+
+  /* ---------- Page ---------- */
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--page-bg); color: var(--text-color); font-family: Georgia, "Times New Roman", serif; }
+  
+  header { width: calc(100% - 32px); max-width: 968px; margin: 16px auto 0; background: var(--box-bg); border: 1px solid var(--border); border-radius: 10px; }
+  .header-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 16px 20px; }
+  .tabs { display: flex; gap: 4px; padding: 0 14px; border-top: 1px solid var(--border); font-family: system-ui, sans-serif; }
+  .tab { padding: 10px 12px; font-size: 0.95rem; color: var(--muted-text); text-decoration: none; border-bottom: 2px solid transparent; }
+  .tab:hover { color: var(--primary); }
+  .tab.active { color: var(--primary); font-weight: 600; border-bottom-color: var(--primary); }
+  .tab:focus-visible { outline: 3px solid var(--visiting); outline-offset: -3px; }
+
+  .user-box { display: flex; align-items: center; gap: 10px; font-family: system-ui, sans-serif; font-size: 0.9rem; }
+
+  .nav-link { display: inline-block; padding: 9px 14px; border: 1px solid var(--primary); background: #fff; color: var(--primary); border-radius: 6px; font-size: 0.95rem; text-decoration: none; }
+  .nav-link:hover { background: var(--primary); color: #fff; }
+
+  h1 { margin: 0; font-size: 1.6rem; }
+  header p { margin: 4px 0 0; color: var(--muted-text); font-family: system-ui, sans-serif; font-size: 0.92rem; }
+  main { max-width: 1000px; margin: 0 auto; padding: 8px 16px 32px; font-family: system-ui, sans-serif; }
+  .box { background: var(--box-bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-top: 12px; }
+
+  /* ---------- Input and buttons ---------- */
+  .toolbar { display: flex; flex-wrap: wrap; gap: 12px 28px; align-items: center; }
+  .group { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  input[type=number] { width: 110px; padding: 9px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 1rem; }
+    /* Every button looks (white) */
+    button, button.outline { padding: 9px 14px; border: 1px solid var(--primary); background: #fff; color: var(--primary); border-radius: 6px; font-size: 0.95rem; cursor: pointer; }
+
+    /* Every button turns green after the click */
+    button:active, button.clicked { background: var(--primary); color: #fff; }
+  
+  /* ---------- Status message ---------- */
+  #status { margin-top: 10px; min-height: 1.4em; font-weight: 600; }
+  #status.info { color: var(--primary); }
+  #status.good { color: var(--success); }
+  #status.bad { color: var(--danger); }
+
+  /* ---------- Tree drawing ---------- */
+  #treeArea { overflow: auto; }
+  svg { display: block; margin: 0 auto; }
+  .link { stroke: var(--border); stroke-width: 2; }
+  .vertex circle { fill: #fff; stroke: var(--primary); stroke-width: 2.5; transition: fill 0.2s; }
+  .vertex text { text-anchor: middle; dominant-baseline: central; font-size: 15px; font-weight: 700; fill: var(--text-color); }
+  .vertex.visit circle { fill: var(--visiting); }
+  .vertex.found circle { fill: var(--success); }
+  .vertex.dup circle { fill: var(--danger); }
+  .vertex.found text, .vertex.dup text { fill: #fff; }
+  .placeholder { text-align: center; color: var(--muted-text); padding: 50px 0; }
+
+  /* ---------- Traversal list ---------- */
+  .traversal-row { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; margin-bottom: 10px; }
+  .traversal-row b { width: 90px; }
+  .traversal-row span { font-family: ui-monospace, Menlo, monospace; word-break: break-word; }
+  #stats { color: var(--muted-text); font-size: 0.9rem; margin-top: 8px; }
+
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+
+<body>
+<header>
+  <div class="header-top">
+    <div>
+      <h1>Binary Search Tree Explorer</h1>
+      <p>Insert and search numbers, watch the tree grow, and compare the three traversals.</p>
+    </div>
+    <div class="user-box">
+      <span id="welcome"></span>
+      <button id="logoutBtn" class="outline">Logout</button>
+    </div>
+  </div>
+
+  <nav class="tabs">
+    <a class="tab active" href="bst.html">Explorer</a>
+    <a class="tab" href="learn.html">Learn more</a>
+  </nav>
+</header>
+
+<main>
+  <!-- Controls -->
+  <section class="box">
+    <div class="toolbar">
+      <div class="group">
+        <label for="valueInput">Value</label>
+        <input id="valueInput" type="number" step="1" placeholder="e.g. 42">
+        <button id="insertBtn">Insert</button>
+        <button id="searchBtn" class="outline">Search</button>
+        <button id="deleteBtn" class="outline">Delete</button>
+      </div>
+
+      <div class="group">
+        <label for="newValueInput">New value</label>
+        <input id="newValueInput" type="number" step="1" placeholder="e.g. 55">
+        <button id="updateBtn" class="outline">Update</button>
+      </div>
+
+      <div class="group">
+        <button id="randomBtn" class="outline"></button>
+        <button id="clearBtn" class="outline">Clear</button>
+      </div>
+    </div>
+    <div id="status" class="info" role="status" aria-live="polite"></div>
+  </section>
+
+  <!-- Tree is drawn here -->
+  <section class="box" id="treeArea"></section>
+
+  <!-- Traversal rows are created by the script -->
+  <section class="box">
+    <div id="traversalList"></div>
+    <div id="stats"></div>
+  </section>
+</main>
+
+<script>
+/* =====================================================
+   1. CONFIG: numbers you can change (speed, sizes, etc.)
+   ===================================================== */
+const CONFIG = {
+  walkDelay: 450,        // pause on each node while walking a path (ms)
+  finalPause: 900,       // pause on the final highlighted node (ms)
+  insertPause: 700,      // pause after a new node is inserted (ms)
+  traversalDelay: 500,   // pause between nodes in a traversal animation (ms)
+  traversalEndPause: 600,// pause after a traversal animation ends (ms)
+  gapX: 50,              // horizontal distance between nodes
+  gapY: 70,              // vertical distance between levels
+  radius: 21,            // node circle size
+  padding: 34,           // empty space around the drawing
+  randomCount: 7,        // how many numbers "Add random" tries to insert
+  randomMax: 99,         // random numbers go from 1 to this value
+  clickFlash: 300        // how long a button stays green after a click (ms)
+};
+
+/* =====================================================
+   2. TEXT: every message shown to the user
+   ===================================================== */
+const TEXT = {
+  start: "Insert a number to start the tree.",
+  emptyTree: "The tree is empty. Insert a value above.",
+  invalidInput: "Enter a whole number first.",
+  cleared: "Tree cleared.",
+  randomButton: (n) => `Add ${n} random`,
+  finding: (v) => `Finding the place for ${v}...`,
+  searching: (v) => `Searching for ${v}...`,
+  duplicate: (v) => `${v} is already in the tree. Duplicates are not inserted.`,
+  inserted: (v, path) =>
+    `Inserted ${v}. Path: ${path.length ? path.join(" > ") + " > " + v : v + " (root)"}`,
+  found: (v, path) => `Found ${v} after ${path.length} comparison(s): ${path.join(" > ")}`,
+  notFound: (v, path) => `${v} is not in the tree (${path.length} comparison(s)).`,
+
+    notFound: (v, path) => `${v} is not in the tree (${path.length} comparison(s)).`,
+    deleting: (v) => `Finding ${v} to delete...`,
+    deleted: (v, path) => `Deleted ${v}. Path: ${path.join(" > ")}`,
+    deleteNotFound: (v, path) => `${v} is not in the tree, nothing to delete (${path.length} comparison(s)).`,
+    updating: (a, b) => `Updating ${a} to ${b}...`,
+    updated: (a, b) => `Updated ${a} to ${b}. The tree was rearranged to keep BST order.`,
+    updateSame: "The old and new values are the same.",
+    updateMissing: (v) => `${v} is not in the tree, nothing to update.`,
+    updateExists: (v) => `${v} is already in the tree. Duplicates are not allowed.`,
+
+  randomDone: (added, skipped) =>
+    `Added ${added} random value(s)` + (skipped ? `, skipped ${skipped} duplicate(s).` : "."),
+  traversalStart: (name) => `Animating ${name} traversal...`,
+  traversalDone: (name, order) => `${name} result: ${order.join(", ")}`,
+  stats: (size, height) =>
+    `Nodes: ${size} | Height: ${height} | Inorder is always sorted for a valid BST.`
+};
+
+/* =====================================================
+   3. BINARY SEARCH TREE (all operations are recursive)
+   ===================================================== */
+function createTree() {
+  let root = null;
+  let count = 0;
+
+  // Recursive insert: smaller goes left, bigger goes right, equal is ignored
+  function insertInto(node, value) {
+    if (node === null) {
+      count++;
+      return { value: value, left: null, right: null };
+    }
+    if (value < node.value) node.left = insertInto(node.left, value);
+    else if (value > node.value) node.right = insertInto(node.right, value);
+    return node;
+  }
+
+  // Recursive search: fills "trail" with every value compared along the way
+  function look(node, value, trail) {
+    if (node === null) return false;
+    trail.push(node.value);
+    if (value === node.value) return true;
+    return look(value < node.value ? node.left : node.right, value, trail);
+  }
+
+  // Recursive delete: handles the 3 BST cases
+  function removeFrom(node, value) {
+    if (node === null) return null;          // value not found
+
+    if (value < node.value) {
+      node.left = removeFrom(node.left, value);
+    } else if (value > node.value) {
+      node.right = removeFrom(node.right, value);
+    } else {
+      // Case 1 and 2: node has 0 or 1 child, so replace it with its child
+      if (node.left === null) { count--; return node.right; }
+      if (node.right === null) { count--; return node.left; }
+
+      // Case 3: node has 2 children
+      // copy the smallest value of the right subtree here, then delete that value from the right subtree
+      let successor = node.right;
+      while (successor.left !== null) successor = successor.left;
+      node.value = successor.value;
+      node.right = removeFrom(node.right, successor.value);
+    }
+    return node;
+  }
+
+  // Traversals: each one collects values into "out"
+  function inorderOf(node, out) {
+    if (node) { inorderOf(node.left, out); out.push(node.value); inorderOf(node.right, out); }
+    return out;
+  }
+  function preorderOf(node, out) {
+    if (node) { out.push(node.value); preorderOf(node.left, out); preorderOf(node.right, out); }
+    return out;
+  }
+  function postorderOf(node, out) {
+    if (node) { postorderOf(node.left, out); postorderOf(node.right, out); out.push(node.value); }
+    return out;
+  }
+
+  function heightOf(node) {
+    return node ? 1 + Math.max(heightOf(node.left), heightOf(node.right)) : 0;
+  }
+
+  // Public methods (the rest of the page uses these)
+  return {
+    insert(value) {                      // returns true if added, false if duplicate
+      const before = count;
+      root = insertInto(root, value);
+      return count > before;
+    },
+    remove(value) {                      // returns true if deleted, false if not found
+      const before = count;
+      root = removeFrom(root, value);
+      return count < before;
+    },
+    update(oldValue, newValue) {         // returns true if updated, false otherwise
+      if (oldValue === newValue) return false;
+      if (!look(root, oldValue, [])) return false;    // old value must exist
+      if (look(root, newValue, [])) return false;     // new value must not exist already
+      root = removeFrom(root, oldValue);              // step 1: delete old value
+      root = insertInto(root, newValue);              // step 2: insert new value
+      return true;
+    },
+    search(value) {                      // returns { found, path }
+      const path = [];
+      return { found: look(root, value, path), path: path };
+    },
+    clear() { root = null; count = 0; },
+    inorder() { return inorderOf(root, []); },
+    preorder() { return preorderOf(root, []); },
+    postorder() { return postorderOf(root, []); },
+    height() { return heightOf(root); },
+    size() { return count; },
+    root() { return root; }
+  };
+}
+
+const tree = createTree();
+
+/* =====================================================
+   4. TRAVERSAL TABLE: add a new traversal by adding one line here
+   ===================================================== */
+const TRAVERSALS = [
+  { name: "inorder",   title: "Inorder",   run: () => tree.inorder() },
+  { name: "preorder",  title: "Preorder",  run: () => tree.preorder() },
+  { name: "postorder", title: "Postorder", run: () => tree.postorder() }
+];
+
+/* =====================================================
+   5. SCREEN HELPERS
+   ===================================================== */
+const valueInput = document.getElementById("valueInput");
+const statusBox = document.getElementById("status");
+const treeArea = document.getElementById("treeArea");
+const statsBox = document.getElementById("stats");
+const traversalList = document.getElementById("traversalList");
+
+let busy = false;   // true while an animation is running
+
+function setStatus(text, kind) {
+  statusBox.textContent = text;
+  statusBox.className = kind;   // "info", "good" or "bad"
+}
+
+function pause(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// Gives every node an x (inorder position) and y (depth)
+function computePositions() {
+  const spots = new Map();
+  let column = 0;
+  function visit(node, depth) {
+    if (!node) return;
+    visit(node.left, depth + 1);
+    spots.set(node.value, { x: column++, y: depth, node: node });
+    visit(node.right, depth + 1);
+  }
+  visit(tree.root(), 0);
+  return spots;
+}
+
+// Draws the tree. "marks" looks like { 50: "visit", 30: "found" }
+function drawTree(marks = {}) {
+  if (!tree.root()) {
+    treeArea.innerHTML = `<div class="placeholder">${TEXT.emptyTree}</div>`;
+    return;
+  }
+
+  const spots = computePositions();
+  const { gapX, gapY, radius, padding } = CONFIG;
+  const width = Math.max(300, (spots.size - 1) * gapX + padding * 2);
+  const height = (tree.height() - 1) * gapY + padding * 2;
+
+  let linksSvg = "";
+  let nodesSvg = "";
+
+  for (const [value, spot] of spots) {
+    const x = padding + spot.x * gapX;
+    const y = padding + spot.y * gapY;
+
+    for (const child of [spot.node.left, spot.node.right]) {
+      if (child) {
+        const c = spots.get(child.value);
+        linksSvg += `<line class="link" x1="${x}" y1="${y}" x2="${padding + c.x * gapX}" y2="${padding + c.y * gapY}"/>`;
+      }
+    }
+
+    nodesSvg += `<g class="vertex ${marks[value] || ""}">
+                   <circle cx="${x}" cy="${y}" r="${radius}"/>
+                   <text x="${x}" y="${y}">${value}</text>
+                 </g>`;
+  }
+
+  treeArea.innerHTML =
+    `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" role="img" aria-label="Binary search tree">${linksSvg}${nodesSvg}</svg>`;
+}
+
+// Fills the traversal rows with the latest results
+function updateTraversalTexts() {
+  for (const t of TRAVERSALS) {
+    const values = t.run();
+    document.getElementById("result-" + t.name).textContent = values.length ? values.join(", ") : "-";
+  }
+  statsBox.textContent = tree.size() ? TEXT.stats(tree.size(), tree.height()) : "";
+}
+
+function refreshAll() {
+  drawTree();
+  updateTraversalTexts();
+}
+
+// Highlights path nodes one by one; the last node can get a final color
+async function showPath(path, finalClass, finalValue) {
+  const marks = {};
+  for (const value of path) {
+    marks[value] = "visit";
+    drawTree(marks);
+    await pause(CONFIG.walkDelay);
+  }
+  if (finalClass) {
+    marks[finalValue] = finalClass;
+    drawTree(marks);
+    await pause(CONFIG.finalPause);
+  }
+}
+
+// Reads the input box; returns null (and shows an error) if invalid
+function readValue() {
+  const raw = valueInput.value.trim();
+  if (raw === "" || !Number.isInteger(Number(raw))) {
+    setStatus(TEXT.invalidInput, "bad");
+    valueInput.focus();
+    return null;
+  }
+  return Number(raw);
+}
+
+/* =====================================================
+   6. BUTTON ACTIONS
+   ===================================================== */
+async function handleInsert() {
+  if (busy) return;
+  const value = readValue();
+  if (value === null) return;
+  busy = true;
+
+  const { found, path } = tree.search(value);   // a found value means duplicate
+
+  if (found) {
+    setStatus(TEXT.duplicate(value), "bad");
+    await showPath(path, "dup", value);
+  } else {
+    setStatus(TEXT.finding(value), "info");
+    await showPath(path);
+    tree.insert(value);
+    setStatus(TEXT.inserted(value, path), "good");
+    drawTree({ [value]: "found" });
+    await pause(CONFIG.insertPause);
+  }
+
+  refreshAll();
+  valueInput.value = "";
+  valueInput.focus();
+  busy = false;
+}
+
+async function handleSearch() {
+  if (busy) return;
+  const value = readValue();
+  if (value === null) return;
+  busy = true;
+
+  const { found, path } = tree.search(value);
+  setStatus(TEXT.searching(value), "info");
+  await showPath(path, found ? "found" : null, value);
+
+  setStatus(found ? TEXT.found(value, path) : TEXT.notFound(value, path), found ? "good" : "bad");
+  drawTree(found ? { [value]: "found" } : {});
+  busy = false;
+}
+
+async function handleDelete() {
+  if (busy) return;
+  const value = readValue();
+  if (value === null) return;
+  busy = true;
+
+  const { found, path } = tree.search(value);
+  setStatus(TEXT.deleting(value), "info");
+  await showPath(path, found ? "dup" : null, value);   // red node = the one being deleted
+
+  if (found) {
+    tree.remove(value);
+    setStatus(TEXT.deleted(value, path), "good");
+  } else {
+    setStatus(TEXT.deleteNotFound(value, path), "bad");
+  }
+
+  refreshAll();
+  valueInput.value = "";
+  valueInput.focus();
+  busy = false;
+}
+
+// Reads the "New value" box; returns null (and shows an error) if invalid
+function readNewValue() {
+  const raw = document.getElementById("newValueInput").value.trim();
+  if (raw === "" || !Number.isInteger(Number(raw))) {
+    setStatus(TEXT.invalidInput, "bad");
+    document.getElementById("newValueInput").focus();
+    return null;
+  }
+  return Number(raw);
+}
+
+async function handleUpdate() {
+  if (busy) return;
+  const oldValue = readValue();
+  if (oldValue === null) return;
+  const newValue = readNewValue();
+  if (newValue === null) return;
+
+  if (oldValue === newValue) return setStatus(TEXT.updateSame, "bad");
+  busy = true;
+
+  // Check 1: the old value must exist
+  const oldSearch = tree.search(oldValue);
+  if (!oldSearch.found) {
+    setStatus(TEXT.updateMissing(oldValue), "bad");
+    await showPath(oldSearch.path);
+    drawTree();
+    busy = false;
+    return;
+  }
+
+  // Check 2: the new value must not already exist
+  const newSearch = tree.search(newValue);
+  if (newSearch.found) {
+    setStatus(TEXT.updateExists(newValue), "bad");
+    await showPath(newSearch.path, "dup", newValue);
+    drawTree();
+    busy = false;
+    return;
+  }
+
+  // Show the old node (red), update the tree, then show where the new node landed (green)
+  setStatus(TEXT.updating(oldValue, newValue), "info");
+  await showPath(oldSearch.path, "dup", oldValue);
+
+  tree.update(oldValue, newValue);
+  setStatus(TEXT.updated(oldValue, newValue), "good");
+  const landed = tree.search(newValue);
+  await showPath(landed.path, "found", newValue);
+
+  refreshAll();
+  valueInput.value = "";
+  document.getElementById("newValueInput").value = "";
+  valueInput.focus();
+  busy = false;
+}
+
+function handleRandom() {
+  if (busy) return;
+  let added = 0;
+  let skipped = 0;
+  for (let i = 0; i < CONFIG.randomCount; i++) {
+    const value = Math.floor(Math.random() * CONFIG.randomMax) + 1;
+    if (tree.insert(value)) added++;
+    else skipped++;
+  }
+  setStatus(TEXT.randomDone(added, skipped), "good");
+  refreshAll();
+}
+
+function handleClear() {
+  if (busy) return;
+  tree.clear();
+  setStatus(TEXT.cleared, "info");
+  refreshAll();
+}
+
+async function handleTraversal(t) {
+  if (busy || !tree.root()) return;
+  busy = true;
+
+  const order = t.run();
+  setStatus(TEXT.traversalStart(t.name), "info");
+
+  const marks = {};
+  for (const value of order) {
+    marks[value] = "visit";
+    drawTree(marks);
+    await pause(CONFIG.traversalDelay);
+  }
+
+  setStatus(TEXT.traversalDone(t.name, order), "good");
+  await pause(CONFIG.traversalEndPause);
+  drawTree();
+  busy = false;
+}
+
+/* =====================================================
+   7. START-UP: build the traversal rows and connect events
+   ===================================================== */
+for (const t of TRAVERSALS) {
+  const row = document.createElement("div");
+  row.className = "traversal-row";
+  row.innerHTML = `<b>${t.title}</b><span id="result-${t.name}">-</span>`;
+
+  const animateBtn = document.createElement("button");
+  animateBtn.className = "outline";
+  animateBtn.textContent = "Animate";
+  animateBtn.addEventListener("click", () => handleTraversal(t));
+
+  row.appendChild(animateBtn);
+  traversalList.appendChild(row);
+}
+
+document.getElementById("randomBtn").textContent = TEXT.randomButton(CONFIG.randomCount);
+document.getElementById("insertBtn").addEventListener("click", handleInsert);
+document.getElementById("searchBtn").addEventListener("click", handleSearch);
+document.getElementById("randomBtn").addEventListener("click", handleRandom);
+document.getElementById("clearBtn").addEventListener("click", handleClear);
+valueInput.addEventListener("keydown", (e) => { if (e.key === "Enter") handleInsert(); });
+document.getElementById("deleteBtn").addEventListener("click", handleDelete);
+document.getElementById("updateBtn").addEventListener("click", handleUpdate);
+
+document.addEventListener("click", (e) => {
+  const btn = e.target.closest("button");
+  if (!btn) return;
+  btn.classList.add("clicked");
+  setTimeout(() => btn.classList.remove("clicked"), CONFIG.clickFlash);
+});
+
+// Show the logged-in user's name and handle Logout
+const currentUser = JSON.parse(sessionStorage.getItem("bstCurrentUser"));
+if (currentUser) {
+  document.getElementById("welcome").textContent = "Hi, " + currentUser.name;
+}
+document.getElementById("logoutBtn").addEventListener("click", () => {
+  sessionStorage.removeItem("bstCurrentUser");
+  window.location.href = "login.html";
+});
+
+setStatus(TEXT.start, "info");
+refreshAll();
+</script>
+</body>
+</html>

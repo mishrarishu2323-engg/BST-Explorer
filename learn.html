@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Learn More | BST Explorer</title>
+
+<style>
+  :root {
+    --page-bg: #f3f6f4;
+    --box-bg: #ffffff;
+    --text-color: #17302a;
+    --muted-text: #5d716b;
+    --border: #b9c9c2;
+    --primary: #0f766e;
+    --code-bg: #eef4f1;
+  }
+
+  /* ---------- Page ---------- */
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--page-bg); color: var(--text-color); font-family: system-ui, sans-serif; line-height: 1.6; }
+  
+  header { width: calc(100% - 32px); max-width: 968px; margin: 16px auto 0; background: var(--box-bg); border: 1px solid var(--border); border-radius: 10px; line-height: normal; }
+  .header-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 16px 20px; }
+  .user-box { display: flex; align-items: center; gap: 10px; font-size: 0.9rem; }
+  .tabs { display: flex; gap: 4px; padding: 0 14px; border-top: 1px solid var(--border); font-family: system-ui, sans-serif; }
+  .tab { padding: 10px 12px; font-size: 0.95rem; color: var(--muted-text); text-decoration: none; border-bottom: 2px solid transparent; }
+  .tab:hover { color: var(--primary); }
+  .tab.active { color: var(--primary); font-weight: 600; border-bottom-color: var(--primary); }
+  .tab:focus-visible { outline: 3px solid #f59e0b; outline-offset: -3px; }
+
+  h1 { margin: 0; font-size: 1.6rem; font-family: Georgia, "Times New Roman", serif; }
+  header p { margin: 4px 0 0; color: var(--muted-text); font-size: 0.92rem; }
+  main { max-width: 1000px; margin: 0 auto; padding: 8px 16px 32px; }
+  .box { background: var(--box-bg); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; margin-top: 12px; }
+  h2 { margin: 0 0 8px; font-size: 1.25rem; font-family: Georgia, "Times New Roman", serif; }
+  p { margin: 8px 0; }
+  ul { margin: 8px 0; padding-left: 22px; }
+
+  /* ---------- Buttons and links ---------- */
+  .nav-link { display: inline-block; padding: 9px 14px; border: 1px solid var(--primary); background: #fff; color: var(--primary);
+              border-radius: 6px; font-size: 0.95rem; text-decoration: none; cursor: pointer; }
+  .nav-link:hover { background: var(--primary); color: #fff; }
+  .nav-link:focus-visible { outline: 3px solid #f59e0b; outline-offset: 1px; }
+
+  /* ---------- Table of contents ---------- */
+  #contents { display: flex; flex-wrap: wrap; gap: 8px; }
+
+  /* ---------- Code and diagrams ---------- */
+  pre { margin: 10px 0; padding: 12px; background: var(--code-bg); border-radius: 6px; overflow-x: auto;
+        font-family: ui-monospace, Menlo, monospace; font-size: 0.9rem; line-height: 1.4; }
+
+  /* ---------- Table ---------- */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 0.95rem; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+  th { background: var(--code-bg); }
+
+    /* ---------- About the project box ---------- */
+  h3 { margin: 16px 0 8px; font-size: 1rem; }
+  .info-list { margin-top: 8px; }
+  .info-row { display: flex; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .info-label { width: 110px; flex-shrink: 0; color: var(--muted-text); font-weight: 600; }
+  .team { display: flex; flex-wrap: wrap; gap: 8px; }
+  .member { padding: 6px 12px; border: 1px solid var(--border); border-radius: 999px; background: var(--code-bg); font-size: 0.95rem; }
+
+</style>
+</head>
+
+<body>
+<header>
+  <div class="header-top">
+    <div>
+      <h1>Learn More</h1>
+      <p>Everything you need to understand a Binary Search Tree.</p>
+    </div>
+    <div class="user-box">
+      <span id="welcome"></span>
+      <button class="nav-link" id="logoutBtn">Logout</button>
+    </div>
+  </div>
+
+  <nav class="tabs">
+    <a class="tab" id="explorerTab" href="bst.html">Explorer</a>
+    <a class="tab active" href="learn.html">Learn more</a>
+  </nav>
+</header>
+
+<main>
+  <!-- Quick links to every section -->
+  <section class="box">
+    <h2>On this page</h2>
+    <div id="contents"></div>
+  </section>
+
+  <!-- All lesson sections are created by the script -->
+  <div id="lessons"></div>
+</main>
+
+<script>
+/* =====================================================
+   1. CONFIG: page names and storage key
+   ===================================================== */
+const CONFIG = {
+  explorerPage: "bst.html",
+  loginPage: "login.html",
+  sessionKey: "bstCurrentUser"
+};
+
+// Only logged-in users can see this page
+if (!sessionStorage.getItem(CONFIG.sessionKey)) {
+  window.location.href = CONFIG.loginPage;
+}
+document.getElementById("explorerTab").href = CONFIG.explorerPage;
+
+// Show the logged-in user's name and handle Logout
+const currentUser = JSON.parse(sessionStorage.getItem(CONFIG.sessionKey));
+if (currentUser) {
+  document.getElementById("welcome").textContent = "Hi, " + currentUser.name;
+}
+document.getElementById("logoutBtn").addEventListener("click", () => {
+  sessionStorage.removeItem(CONFIG.sessionKey);
+  window.location.href = CONFIG.loginPage;
+});
+
+/* =====================================================
+   2. LESSONS: edit the text here, the page updates itself
+   Each section can have: paragraphs, points (bullet list), diagram (code box)
+   ===================================================== */
+const LESSONS = [
+  {
+    id: "what",
+    title: "What is a Binary Search Tree?",
+    paragraphs: [
+      "A Binary Search Tree (BST) is a tree where every node has at most two children, called left and right.",
+      "The tree always follows one simple rule, which keeps the data in order and makes searching fast."
+    ],
+    points: [
+      "Every value in the left subtree is smaller than the node.",
+      "Every value in the right subtree is bigger than the node.",
+      "This rule is true for every node, not just the root.",
+      "In this project, duplicate values are not allowed."
+    ],
+    diagram: String.raw`
+        50
+      /    \
+    30      70
+   /  \    /  \
+  20  40  60  80`
+  },
+  {
+    id: "insert",
+    title: "Insert",
+    paragraphs: [
+      "Start at the root and compare the new value with the current node."
+    ],
+    points: [
+      "Smaller than the node: go left.",
+      "Bigger than the node: go right.",
+      "Equal to the node: it is a duplicate, so nothing is inserted.",
+      "When you reach an empty spot, place the new node there."
+    ]
+  },
+  {
+    id: "search",
+    title: "Search",
+    paragraphs: [
+      "Search follows the same path as insert. At each node, you throw away half of the remaining tree."
+    ],
+    points: [
+      "Equal to the node: found.",
+      "Smaller: search the left subtree.",
+      "Bigger: search the right subtree.",
+      "Reached an empty spot: the value is not in the tree."
+    ]
+  },
+  {
+    id: "delete",
+    title: "Delete",
+    paragraphs: [
+      "Delete first finds the node, then handles one of three cases."
+    ],
+    points: [
+      "No children (leaf): the node is simply removed.",
+      "One child: the node is replaced by its child.",
+      "Two children: the smallest value of the right subtree (the inorder successor) is copied into the node, then that successor is deleted from the right subtree."
+    ]
+  },
+  {
+    id: "update",
+    title: "Update a value",
+    paragraphs: [
+      "A value cannot be changed in place, because the new value may belong in a different position and break the BST rule.",
+      "So an update is done as delete the old value, then insert the new value. The new value must not already exist in the tree."
+    ]
+  },
+  {
+    id: "traversals",
+    title: "Traversals",
+    paragraphs: [
+      "A traversal visits every node exactly once. For the tree 50, 30, 70, 20, 40, 60, 80 the three traversals give:"
+    ],
+    points: [
+      "Inorder (Left, Root, Right): 20, 30, 40, 50, 60, 70, 80. This is always sorted for a BST.",
+      "Preorder (Root, Left, Right): 50, 30, 20, 40, 70, 60, 80. Useful to copy a tree.",
+      "Postorder (Left, Right, Root): 20, 40, 30, 60, 80, 70, 50. Useful to delete a tree."
+    ]
+  },
+  {
+    id: "recursion",
+    title: "Where recursion is used",
+    paragraphs: [
+      "Every operation in this project is recursive. A function calls itself on the left or right child until it reaches an empty spot, which is the base case."
+    ],
+    diagram: String.raw`
+function search(node, value) {
+  if (node === null) return false;       // base case
+  if (value === node.value) return true;
+  if (value < node.value) return search(node.left, value);
+  return search(node.right, value);
+}`
+  },
+  {
+    id: "skewed",
+    title: "Balanced and skewed trees",
+    paragraphs: [
+      "The speed of a BST depends on its height. If values arrive in random order, the tree stays fairly short. If they arrive already sorted, the tree becomes a straight line.",
+      "Try it in the Explorer: insert 1, 2, 3, 4, 5 one by one and watch the Height value grow."
+    ],
+    diagram: String.raw`
+1
+ \
+  2
+   \
+    3
+     \
+      4`
+  }
+];
+
+/* =====================================================
+   3. COMPLEXITY TABLE: edit the rows here
+   ===================================================== */
+const COMPLEXITY = {
+  headings: ["Operation", "Balanced tree", "Skewed tree (worst case)"],
+  rows: [
+    ["Insert", "O(log n)", "O(n)"],
+    ["Search", "O(log n)", "O(n)"],
+    ["Delete", "O(log n)", "O(n)"],
+    ["Traversal", "O(n)", "O(n)"]
+  ],
+  note: "Here n is the number of nodes. Insert, search and delete take O(h) time, where h is the height of the tree."
+};
+
+/* =====================================================
+   3b. PROJECT INFO AND TEAM: edit names and details here
+   ===================================================== */
+const PROJECT = {
+  title: "About this project",
+  description: "Binary Search Tree Explorer was developed as an HCL GUVI Training Project.",
+  details: [
+    ["Project", "Binary Search Tree Explorer"],
+    ["Program", "HCL GUVI Training Project"],
+    ["Course", "B.Tech Computer Science & Engineering"],
+    ["Year", "2nd Year"]
+  ],
+  teamTitle: "Team members",
+  team: [
+    "Rishu Mishra",
+    "Pranshu",
+    "Ravi Ranjan Anand",
+    "Omkar Dubey",
+    "Rishabh Mishra"
+  ]
+};
+
+/* =====================================================
+   4. BUILD THE PAGE
+   ===================================================== */
+const lessonsBox = document.getElementById("lessons");
+const contentsBox = document.getElementById("contents");
+
+// Makes a small element with optional text
+function make(tag, text, className) {
+  const el = document.createElement(tag);
+  if (text) el.textContent = text;
+  if (className) el.className = className;
+  return el;
+}
+
+// One lesson = one box
+function buildLesson(lesson) {
+  const box = make("section", "", "box");
+  box.id = lesson.id;
+  box.appendChild(make("h2", lesson.title));
+
+  for (const text of lesson.paragraphs || []) {
+    box.appendChild(make("p", text));
+  }
+
+  if (lesson.points) {
+    const list = make("ul");
+    for (const point of lesson.points) list.appendChild(make("li", point));
+    box.appendChild(list);
+  }
+
+  if (lesson.diagram) {
+    box.appendChild(make("pre", lesson.diagram.trim()));
+  }
+  return box;
+}
+
+// The complexity table is built the same way
+function buildComplexityBox() {
+  const box = make("section", "", "box");
+  box.id = "complexity";
+  box.appendChild(make("h2", "Time complexity"));
+
+  const wrap = make("div", "", "table-wrap");
+  const table = make("table");
+
+  const headRow = make("tr");
+  for (const h of COMPLEXITY.headings) headRow.appendChild(make("th", h));
+  table.appendChild(headRow);
+
+  for (const row of COMPLEXITY.rows) {
+    const tr = make("tr");
+    for (const cell of row) tr.appendChild(make("td", cell));
+    table.appendChild(tr);
+  }
+
+  wrap.appendChild(table);
+  box.appendChild(wrap);
+  box.appendChild(make("p", COMPLEXITY.note));
+  return box;
+}
+
+// The About box: project details and team members
+function buildAboutBox() {
+  const box = make("section", "", "box");
+  box.id = "about";
+  box.appendChild(make("h2", PROJECT.title));
+  box.appendChild(make("p", PROJECT.description));
+
+  const list = make("div", "", "info-list");
+  for (const [label, value] of PROJECT.details) {
+    const row = make("div", "", "info-row");
+    row.appendChild(make("span", label, "info-label"));
+    row.appendChild(make("span", value));
+    list.appendChild(row);
+  }
+  box.appendChild(list);
+
+  box.appendChild(make("h3", PROJECT.teamTitle));
+  const team = make("div", "", "team");
+  for (const name of PROJECT.team) team.appendChild(make("span", name, "member"));
+  box.appendChild(team);
+
+  return box;
+}
+
+// Add all lessons, then the table
+for (const lesson of LESSONS) {
+  lessonsBox.appendChild(buildLesson(lesson));
+
+  const link = make("a", lesson.title, "nav-link");
+  link.href = "#" + lesson.id;
+  contentsBox.appendChild(link);
+}
+
+lessonsBox.appendChild(buildComplexityBox());
+const tableLink = make("a", "Time complexity", "nav-link");
+tableLink.href = "#complexity";
+contentsBox.appendChild(tableLink);
+
+lessonsBox.appendChild(buildAboutBox());
+const aboutLink = make("a", "About the project", "nav-link");
+aboutLink.href = "#about";
+contentsBox.appendChild(aboutLink);
+
+</script>
+</body>
+</html>

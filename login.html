@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Login | BST Explorer</title>
+
+<style>
+  /* ---------- Theme colors (same as bst.html) ---------- */
+  :root {
+    --page-bg: #f3f6f4;
+    --box-bg: #ffffff;
+    --text-color: #17302a;
+    --muted-text: #5d716b;
+    --border: #b9c9c2;
+    --primary: #0f766e;
+    --success: #16a34a;
+    --danger: #dc2626;
+  }
+
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
+         background: var(--page-bg); color: var(--text-color); font-family: system-ui, sans-serif; padding: 16px; }
+
+  .card { width: 100%; max-width: 380px; background: var(--box-bg); border: 1px solid var(--border);
+          border-radius: 10px; padding: 24px; }
+  h1 { margin: 0 0 4px; font-size: 1.4rem; font-family: Georgia, "Times New Roman", serif; }
+  .subtitle { margin: 0 0 16px; color: var(--muted-text); font-size: 0.9rem; }
+
+  label { display: block; margin: 12px 0 4px; font-size: 0.9rem; font-weight: 600; }
+  input { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 1rem; }
+  input:focus-visible, button:focus-visible { outline: 3px solid #f59e0b; outline-offset: 1px; }
+
+  .main-btn { width: 100%; margin-top: 18px; padding: 10px; border: 1px solid var(--primary);
+              background: var(--primary); color: #fff; border-radius: 6px; font-size: 1rem; cursor: pointer; }
+  .main-btn:hover { filter: brightness(1.08); }
+
+  .switch { margin-top: 14px; text-align: center; font-size: 0.9rem; color: var(--muted-text); }
+  .link-btn { background: none; border: none; padding: 0; color: var(--primary); font-size: 0.9rem;
+              font-weight: 600; cursor: pointer; text-decoration: underline; }
+
+  #message { margin-top: 12px; min-height: 1.3em; font-size: 0.9rem; font-weight: 600; }
+  #message.good { color: var(--success); }
+  #message.bad { color: var(--danger); }
+  #message.info { color: var(--primary); }
+
+  .hidden { display: none; }
+</style>
+</head>
+
+<body>
+<div class="card">
+
+  <!-- ===== User Login ===== -->
+  <section id="loginView">
+    <h1>User Login</h1>
+    <p class="subtitle">Login to open the BST Explorer.</p>
+    <form id="loginForm">
+      <label for="loginEmail">Email Address</label>
+      <input id="loginEmail" type="email" placeholder="you@example.com" autocomplete="email">
+
+      <label for="loginPassword">Password</label>
+      <input id="loginPassword" type="password" placeholder="Your password" autocomplete="current-password">
+
+      <button type="submit" class="main-btn">Login</button>
+    </form>
+    <div class="switch">New here? <button type="button" class="link-btn" id="goSignup">Create account</button></div>
+  </section>
+
+  <!-- ===== Create Account ===== -->
+  <section id="signupView" class="hidden">
+    <h1>Create Account</h1>
+    <p class="subtitle">Fill the details to create your account.</p>
+    <form id="signupForm">
+      <label for="signupName">Full Name</label>
+      <input id="signupName" type="text" placeholder="Rishu Mishra" autocomplete="name">
+
+      <label for="signupEmail">Email Address</label>
+      <input id="signupEmail" type="email" placeholder="you@example.com" autocomplete="email">
+
+      <label for="signupPassword">Create Password</label>
+      <input id="signupPassword" type="password" placeholder="At least 6 characters" autocomplete="new-password">
+
+      <button type="submit" class="main-btn">Create Account</button>
+    </form>
+    <div class="switch">Already have an account? <button type="button" class="link-btn" id="goLogin">Login</button></div>
+  </section>
+
+  <div id="message" class="info" role="status" aria-live="polite"></div>
+</div>
+
+<script>
+/* =====================================================
+   1. CONFIG: file names, storage keys, rules
+   ===================================================== */
+const CONFIG = {
+  dashboardPage: "bst.html",       // page that opens after login
+  usersKey: "bstUsers",            // where all accounts are stored (localStorage)
+  sessionKey: "bstCurrentUser",    // who is logged in right now (sessionStorage)
+  minPasswordLength: 6
+};
+
+/* =====================================================
+   2. TEXT: every message shown to the user
+   ===================================================== */
+const TEXT = {
+  fillAll: "Please fill in all the fields.",
+  badEmail: "Enter a valid email address.",
+  shortPassword: (n) => `Password must be at least ${n} characters.`,
+  noAccount: "No account found with this email. Create an account below.",
+  wrongPassword: "Wrong password. Try again.",
+  loginOk: "Login successful. Opening BST Explorer...",
+  alreadyExists: "An account with this email already exists. Please login.",
+  accountCreated: "Account created. Please login."
+};
+
+/* =====================================================
+   3. STORAGE HELPERS
+   ===================================================== */
+function getUsers() {
+  try {
+    return JSON.parse(localStorage.getItem(CONFIG.usersKey)) || [];
+  } catch (error) {
+    return [];
+  }
+}
+
+function saveUsers(users) {
+  localStorage.setItem(CONFIG.usersKey, JSON.stringify(users));
+}
+
+function findUser(email) {
+  return getUsers().find((u) => u.email === email);
+}
+
+/* =====================================================
+   4. SCREEN HELPERS
+   ===================================================== */
+const loginView = document.getElementById("loginView");
+const signupView = document.getElementById("signupView");
+const messageBox = document.getElementById("message");
+
+function setMessage(text, kind) {
+  messageBox.textContent = text;
+  messageBox.className = kind;   // "info", "good" or "bad"
+}
+
+// Shows either the login form or the create-account form
+function showView(name) {
+  loginView.classList.toggle("hidden", name !== "login");
+  signupView.classList.toggle("hidden", name !== "signup");
+}
+
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+/* =====================================================
+   5. FORM ACTIONS
+   ===================================================== */
+
+// User Login -> does the account exist?
+function handleLogin(event) {
+  event.preventDefault();
+  const email = document.getElementById("loginEmail").value.trim().toLowerCase();
+  const password = document.getElementById("loginPassword").value;
+
+  if (!email || !password) return setMessage(TEXT.fillAll, "bad");
+  if (!isValidEmail(email)) return setMessage(TEXT.badEmail, "bad");
+
+  const user = findUser(email);
+
+  // No -> go to Create Account
+  if (!user) {
+    document.getElementById("signupEmail").value = email;
+    showView("signup");
+    return setMessage(TEXT.noAccount, "info");
+  }
+
+  if (user.password !== password) return setMessage(TEXT.wrongPassword, "bad");
+
+  // Yes -> open the dashboard (bst.html)
+  sessionStorage.setItem(CONFIG.sessionKey, JSON.stringify({ name: user.name, email: user.email }));
+  setMessage(TEXT.loginOk, "good");
+  window.location.href = CONFIG.dashboardPage;
+}
+
+// Create Account -> Full Name, Email Address, Create Password -> back to login
+function handleSignup(event) {
+  event.preventDefault();
+  const name = document.getElementById("signupName").value.trim();
+  const email = document.getElementById("signupEmail").value.trim().toLowerCase();
+  const password = document.getElementById("signupPassword").value;
+
+  if (!name || !email || !password) return setMessage(TEXT.fillAll, "bad");
+  if (!isValidEmail(email)) return setMessage(TEXT.badEmail, "bad");
+  if (password.length < CONFIG.minPasswordLength) {
+    return setMessage(TEXT.shortPassword(CONFIG.minPasswordLength), "bad");
+  }
+
+  // Account already there -> send the user back to login
+  if (findUser(email)) {
+    document.getElementById("loginEmail").value = email;
+    showView("login");
+    return setMessage(TEXT.alreadyExists, "bad");
+  }
+
+  const users = getUsers();
+  users.push({ name: name, email: email, password: password });
+  saveUsers(users);
+
+  // Back to User Login
+  document.getElementById("signupForm").reset();
+  document.getElementById("loginEmail").value = email;
+  document.getElementById("loginPassword").value = "";
+  showView("login");
+  setMessage(TEXT.accountCreated, "good");
+}
+
+/* =====================================================
+   6. START-UP
+   ===================================================== */
+
+// Already logged in? Skip the login page
+if (sessionStorage.getItem(CONFIG.sessionKey)) {
+  window.location.href = CONFIG.dashboardPage;
+}
+
+document.getElementById("loginForm").addEventListener("submit", handleLogin);
+document.getElementById("signupForm").addEventListener("submit", handleSignup);
+document.getElementById("goSignup").addEventListener("click", () => { showView("signup"); setMessage("", "info"); });
+document.getElementById("goLogin").addEventListener("click", () => { showView("login"); setMessage("", "info"); });
+</script>
+</body>
+</html>
